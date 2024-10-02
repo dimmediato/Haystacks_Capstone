@@ -1,1 +1,3 @@
-# Haystacks_Capstone
+# Haystacks Capstone
+
+The Haystacks Project is an assessment on external amenity effects on rental rates in the Atlanta, Georgia area. Specifically, it is known that distance from an external amenity affects rental price in some way. It was decided to initiate an analysis of the "convenience factor", defined as the amenity critical to local livelihood: grocery stores. Divided into five different categories, the data are placed into a Leaflet web application built using JavaScript, and then nearest point of interest is calculated. Machine learning models, like XGBoost and Random Forest, will then be used to demonstrate the actual accuracy and the trends of the data, in order to see which features matter most and to what extent. 
