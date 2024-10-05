@@ -112,7 +112,7 @@
             onEachFeature: function (feature, layer) {
                 layer.on('click', function () {
                     var closest = findClosestPoint(layer.getLatLng());
-                    var address = feature.properties.full_street_address || "No address available";
+                    var address = feature.properties.street_address || "No address available";
                     var distance = map.distance(layer.getLatLng(), closest.latlng).toFixed(2);
 
                     // Display the nearest POI, distance, and address in a popup
@@ -128,7 +128,7 @@
         if (geoJsonLayer && overpassPoints.length > 0) {
             geoJsonLayer.eachLayer(function (layer) {
                 var closest = findClosestPoint(layer.getLatLng());
-                var address = layer.feature.properties.full_street_address || "No address available";
+                var address = layer.feature.properties.street_address || "No address available";
 
                 // Store the nearest POI for each property
                 distancesToDownload.push({
@@ -154,7 +154,7 @@
         let foundLayer = null;
 
         geoJsonLayer.eachLayer(function (layer) {
-            const address = layer.feature.properties.full_street_address || "";
+            const address = layer.feature.properties.street_address || "";
             if (address.toLowerCase() === addressInput) {
                 foundLayer = layer;
             }
@@ -162,7 +162,7 @@
 
         if (foundLayer) {
             map.setView(foundLayer.getLatLng(), 14);
-            foundLayer.bindPopup(`Found: ${foundLayer.feature.properties.full_street_address}`).openPopup();
+            foundLayer.bindPopup(`Found: ${foundLayer.feature.properties.street_address}`).openPopup();
         } else {
             alert("Address not found.");
         }
