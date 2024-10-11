@@ -60,7 +60,7 @@
 
     // Helper function to build Overpass API URL
     function buildOverpassApiUrl(overpassQuery) {
-    var bounds = '30.2441,-88.4732,35.0033,-80.1370'; // Bounding box for GA, AL, SC, TN
+    var bounds = '30.2441,-88.4732,35.0033,-80.1370'; // Bounding box for GA, AL, SC, TN [brand!~"Target|Walmart"]
     var query = `?data=[out:json][timeout:25];(node[${overpassQuery}][name!~"Home Improvement Outlet, Inc."](${bounds}););out body geom;`;
     return 'http://overpass-api.de/api/interpreter' + query;
 }

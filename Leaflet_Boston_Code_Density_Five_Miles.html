@@ -46,10 +46,10 @@
 <!-- osmtogeojson -->
 <script src="https://unpkg.com/osmtogeojson@2.2.12/osmtogeojson.js"></script>
 <!-- GeoJSON data -->
-<script src="Converted_Sales.geojson"></script>
+<script src="Boston_Dataset.geojson"></script>
 
 <script>
-    var map = L.map('map').setView([33.7501, -84.3885], 8);
+    var map = L.map('map').setView([42.361145, -71.057083], 8);
     L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -60,10 +60,12 @@
 
     // Helper function to build Overpass API URL
     function buildOverpassApiUrl(overpassQuery) {
-        var bounds = '30.2441,-88.4732,35.0033,-80.1370'; // Bounding box for GA, AL, SC, TN [brand!~"Target|Walmart"]
-        var query = `?data=[out:json][timeout:25];(node[${overpassQuery}][name!~"Home Improvement Outlet, Inc."](${bounds}););out body geom;`;
-        return 'http://overpass-api.de/api/interpreter' + query;
-    }
+    // Bounding box for the Boston Metro Area + 1 degree outside of it
+    var bounds = '41.2279,-72.1912,43.5664,-69.9194' 
+    // [brand!~"Target|Walmart"]
+    var query = `?data=[out:json][timeout:25];(node[${overpassQuery}][name!~"Home Improvement Outlet, Inc."][name!~"Shirtmasters"](${bounds}););out body geom;`;
+    return 'http://overpass-api.de/api/interpreter' + query;
+}
 
     // Add POIs to map and store them in array
     function addOverpassPoints(osmDataAsJson) {
@@ -111,7 +113,7 @@
 
     // Load GeoJSON data
     function loadGeoJsonData() {
-        geoJsonLayer = L.geoJson(kcTracts, {
+        geoJsonLayer = L.geoJson(Boston, {
             onEachFeature: function (feature, layer) {
                 layer.on('click', function () {
                     var poiCount = countPOIsWithinRadius(layer.getLatLng(), 8046.7); // 8046.7 meters = 5 miles

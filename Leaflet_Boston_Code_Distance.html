@@ -46,51 +46,50 @@
 <!-- osmtogeojson -->
 <script src="https://unpkg.com/osmtogeojson@2.2.12/osmtogeojson.js"></script>
 <!-- GeoJSON data -->
-<script src="Converted_Sales.geojson"></script>
+<script src="Boston_Dataset.geojson"></script>
 
 <script>
-    var map = L.map('map').setView([33.7501, -84.3885], 8);
+    var map = L.map('map').setView([42.361145, -71.057083], 8);
     L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     var overpassPoints = [];
-    var distancesToDownload = []; // Array to hold the number of POIs for CSV download
+    var distancesToDownload = []; // Array to hold the distances for CSV download
 
-    // Helper function to build Overpass API URL
     function buildOverpassApiUrl(overpassQuery) {
-        var bounds = '30.2441,-88.4732,35.0033,-80.1370'; // Bounding box for GA, AL, SC, TN [brand!~"Target|Walmart"]
-        var query = `?data=[out:json][timeout:25];(node[${overpassQuery}][name!~"Home Improvement Outlet, Inc."](${bounds}););out body geom;`;
-        return 'http://overpass-api.de/api/interpreter' + query;
-    }
+    // Bounding box for the Boston Metro Area + 1 degree outside of it
+    var bounds = '41.2279,-72.1912,43.5664,-69.9194' 
+    // [brand!~"Target|Walmart"]
+    var query = `?data=[out:json][timeout:25];(node[${overpassQuery}][name!~"Home Improvement Outlet, Inc."][name!~"Shirtmasters"](${bounds}););out body geom;`;
+    return 'http://overpass-api.de/api/interpreter' + query;
+}
 
-    // Add POIs to map and store them in array
     function addOverpassPoints(osmDataAsJson) {
         var resultAsGeojson = osmtogeojson(osmDataAsJson);
         
-        // Custom marker icon
+        // Create a custom icon
         var customIcon = L.icon({
             iconUrl: '25694.png', // Replace with the path to your PNG file
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34]
+            iconSize: [25, 41], // Adjust size as necessary
+            iconAnchor: [12, 41], // Adjust anchor point
+            popupAnchor: [1, -34] // Adjust popup position
         });
         
         L.geoJson(resultAsGeojson, {
             pointToLayer: function (feature, latlng) {
                 overpassPoints.push({ latlng: latlng, name: feature.properties.tags.name || "Unnamed POI" });
-                return L.marker(latlng, { icon: customIcon })
+                return L.marker(latlng, { icon: customIcon }) // Use the custom icon here
                     .bindPopup(feature.properties.tags.name || "Point of Interest")
                     .addTo(map);
             }
         });
 
-        // Automatically calculate the number of POIs within radius
-        calculateAndStorePOICounts();
+        // Automatically compute distances and store them for CSV download
+        calculateAndStoreDistances();
     }
 
-    // Set up query buttons
     function setupQueryButton(buttonId, textFieldId) {
         $(buttonId).click(function () {
             var queryTextfieldValue = $(textFieldId).val();
@@ -109,58 +108,81 @@
 
     var geoJsonLayer;
 
-    // Load GeoJSON data
     function loadGeoJsonData() {
-        geoJsonLayer = L.geoJson(kcTracts, {
+        geoJsonLayer = L.geoJson(Boston, {
             onEachFeature: function (feature, layer) {
                 layer.on('click', function () {
-                    var poiCount = countPOIsWithinRadius(layer.getLatLng(), 8046.7); // 8046.7 meters = 5 miles
+                    var closest = findClosestPoint(layer.getLatLng());
                     var address = feature.properties.street_address || "No address available";
+                    var distance = map.distance(layer.getLatLng(), closest.latlng).toFixed(2);
 
-                    // Show the number of POIs in the popup
-                    layer.bindPopup(`Address: ${address}<br>Number of POIs within 5 mile: ${poiCount}`).openPopup();
+                    // Display the nearest POI, distance, and address in a popup
+                    layer.bindPopup(`Address: ${address}<br>Nearest POI: ${closest.name}<br>Distance: ${distance} meters`).openPopup();
                 });
             }
         }).addTo(map);
     }
 
-    // Count the number of POIs within a specific radius
-    function countPOIsWithinRadius(latlng, radius) {
-        if (overpassPoints.length === 0) return 0;
-
-        return overpassPoints.filter(poi => latlng.distanceTo(poi.latlng) <= radius).length;
-    }
-
-    // Calculate and store POI counts for each point
-    function calculateAndStorePOICounts() {
+    function calculateAndStoreDistances() {
         distancesToDownload = []; // Reset before calculating
 
         if (geoJsonLayer && overpassPoints.length > 0) {
             geoJsonLayer.eachLayer(function (layer) {
-                var poiCount = countPOIsWithinRadius(layer.getLatLng(), 8046.7); // 5 mile radius
+                var closest = findClosestPoint(layer.getLatLng());
                 var address = layer.feature.properties.street_address || "No address available";
 
-                // Store the address and number of POIs for CSV download
+                // Store the nearest POI for each property
                 distancesToDownload.push({
                     address: address,
-                    count: poiCount
+                    name: closest.name,
+                    distance: map.distance(layer.getLatLng(), closest.latlng).toFixed(2)
                 });
             });
         }
     }
 
-    // CSV generation for the number of POIs
+    function findClosestPoint(latlng) {
+        if (overpassPoints.length === 0) return null;
+
+        // Sort all POIs by distance from the property and return the nearest one
+        return overpassPoints.reduce((prev, curr) => {
+            return latlng.distanceTo(curr.latlng) < latlng.distanceTo(prev.latlng) ? curr : prev;
+        });
+    }
+
+    function searchAddress() {
+        const addressInput = $("#search-textfield").val().toLowerCase();
+        let foundLayer = null;
+
+        geoJsonLayer.eachLayer(function (layer) {
+            const address = layer.feature.properties.street_address || "";
+            if (address.toLowerCase() === addressInput) {
+                foundLayer = layer;
+            }
+        });
+
+        if (foundLayer) {
+            map.setView(foundLayer.getLatLng(), 14);
+            foundLayer.bindPopup(`Found: ${foundLayer.feature.properties.street_address}`).openPopup();
+        } else {
+            alert("Address not found.");
+        }
+    }
+
+    $("#search-button").click(searchAddress);
+
+    // Function to generate CSV using JavaScript
     function generateCSV() {
         if (distancesToDownload.length === 0) {
-            alert("No data available for download.");
+            alert("No distances available for download.");
             return;
         }
 
         let csvRows = [];
-        csvRows.push("Address,Number of POIs within 1 mile");
+        csvRows.push("Address,POI,Distance (meters)");
 
         distancesToDownload.forEach(row => {
-            csvRows.push(`${row.address},${row.count}`);
+            csvRows.push(`${row.address},${row.name},${row.distance}`);
         });
 
         let csvContent = csvRows.join("\n");
@@ -171,13 +193,13 @@
         let a = document.createElement('a');
         a.setAttribute('hidden', '');
         a.setAttribute('href', url);
-        a.setAttribute('download', 'poi_counts.csv');
+        a.setAttribute('download', 'nearest_distances.csv');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     }
 
-    // Bind CSV download button
+    // Bind the CSV download button to generateCSV function
     document.getElementById("download-csv").addEventListener("click", generateCSV);
 
     loadGeoJsonData();
