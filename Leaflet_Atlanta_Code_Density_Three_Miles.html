@@ -61,7 +61,7 @@
     // Helper function to build Overpass API URL
     function buildOverpassApiUrl(overpassQuery) {
         var bounds = '30.2441,-88.4732,35.0033,-80.1370'; // Bounding box for GA, AL, SC, TN [brand!~"Target|Walmart"]
-        var query = `?data=[out:json][timeout:25];(node[${overpassQuery}][name!~"Home Improvement Outlet, Inc."](${bounds}););out body geom;`;
+        var query = `?data=[out:json][timeout:25];(node[${overpassQuery}][name!~"Home Improvement Outlet, Inc."][brand!~"Target|Walmart"](${bounds}););out body geom;`;
         return 'http://overpass-api.de/api/interpreter' + query;
     }
 
@@ -118,7 +118,7 @@
                     var address = feature.properties.street_address || "No address available";
 
                     // Show the number of POIs in the popup
-                    layer.bindPopup(`Address: ${address}<br>Number of POIs within 3 mile: ${poiCount}`).openPopup();
+                    layer.bindPopup(`Address: ${address}<br>Number of POIs within 3 miles: ${poiCount}`).openPopup();
                 });
             }
         }).addTo(map);
@@ -157,7 +157,7 @@
         }
 
         let csvRows = [];
-        csvRows.push("Address,Number of POIs within 3 mile");
+        csvRows.push("Address,Number of POIs within 3 miles");
 
         distancesToDownload.forEach(row => {
             csvRows.push(`${row.address},${row.count}`);
